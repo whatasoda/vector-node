@@ -5,7 +5,8 @@ declare global {
   interface VectorMapFromGeneration {}
 
   type OneOfVectorType = FallthroughKey<VectorMapFromGeneration>;
-  type VectorMap = Fallthrough<VectorMapFromGeneration, Record<string, OneOfVector>>;
+  type VectorMap = Fallthrough<VectorMapFromGeneration, Record<string, AnyVector>>;
+  type OneOfVector = VectorMap[Extract<OneOfVectorType, keyof VectorMap>];
 }
 
 declare global {
@@ -13,6 +14,7 @@ declare global {
   type FallthroughValue<K extends PropertyKey, T extends object, U> = K extends keyof T ? T[K] : U;
   type FallthroughKey<T extends object> = {} extends T ? string : keyof T;
 
+  // Vector
   type OneOfArrayType = keyof typeof ARRAY_TYPE_MAP;
   type OneOfDimension = typeof DIMENSIONS[number];
   type OneOfLifetime = keyof LifetimeApplicationMap;
@@ -25,12 +27,12 @@ declare global {
   type OneOfArrayConstructor = typeof ARRAY_TYPE_MAP[OneOfArrayType];
   type OneOfArray = InstanceType<OneOfArrayConstructor>;
 
-  interface AnyVectorCreator extends VectorCreator<OneOfVector> {}
-  interface VectorCreator<V extends OneOfVector> extends VectorBase {
+  interface AnyVectorCreator extends VectorCreator<AnyVector> {}
+  interface VectorCreator<V extends AnyVector> extends VectorBase {
     (length?: number): V;
   }
 
-  type OneOfVector = Vector<OneOfArray>;
+  type AnyVector = Vector<OneOfArray>;
   type Vector<A extends OneOfArray> = Moment<A> | Sequence<A>;
   interface VectorBase {
     type: string;
@@ -44,11 +46,37 @@ declare global {
     value: V;
   }
 
-  interface LifetimeApplicationFunc<T extends OneOfVector['value']> {
+  interface LifetimeApplicationFunc<T extends AnyVector['value']> {
     (constructor: OneOfArrayConstructor, dimension: number, length?: number): T;
   }
   interface LifetimeApplicationMap {
     moment: LifetimeApplicationFunc<Moment<any>['value']>;
     sequence: LifetimeApplicationFunc<Sequence<any>['value']>;
   }
+
+  // Node
+  interface InputsVectorSchema extends Record<string, OneOfVectorType> {}
+  type InputsVectorMap<I extends InputsVectorSchema> = {
+    [T in keyof I]: VectorMap[I[T]];
+  };
+  type InputsNodeMap<I extends InputsVectorSchema> = {
+    [T in keyof I]: VectorNode<any, I[T]>;
+  };
+
+  interface VectorNodeSchema<I extends InputsVectorSchema, O extends OneOfVectorType> {
+    readonly nodeType: string;
+    readonly inputs: I;
+    readonly output: O;
+  }
+
+  interface VectorNodeIO<I extends InputsVectorSchema, O extends OneOfVectorType> {
+    inputs: Readonly<InputsVectorMap<I>>;
+    output: Readonly<VectorMap[O]>;
+  }
+  interface VectorNode<I extends InputsVectorSchema, O extends OneOfVectorType> extends VectorNodeSchema<I, O> {
+    readonly nodeId: number;
+    readonly update: /* TODO: scheduler implementation */ () => Promise<void>;
+  }
+
+  // Scheduler
 }

@@ -14,10 +14,7 @@ export const LIFETIME_MAP: LifetimeApplicationMap = {
 };
 
 const arrayTypeEntries = Object.entries(ARRAY_TYPE_MAP) as [OneOfArrayType, OneOfArrayConstructor][];
-const lifetimeEntries = Object.entries(LIFETIME_MAP) as [
-  OneOfLifetime,
-  LifetimeApplicationFunc<OneOfVector['value']>,
-][];
+const lifetimeEntries = Object.entries(LIFETIME_MAP) as [OneOfLifetime, LifetimeApplicationFunc<AnyVector['value']>][];
 export const VectorCreators = arrayTypeEntries.reduce<Record<string, AnyVectorCreator>>(
   (acc, [arrayType, constructor]) => {
     DIMENSIONS.forEach((dimension) => {
