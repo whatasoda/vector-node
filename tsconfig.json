@@ -1,0 +1,17 @@
+{
+  "extends": "@whatasoda/tsconfig",
+  "compilerOptions": {
+    "resolveJsonModule": true,
+    "downlevelIteration": true,
+    "rootDir": "./",
+    "module": "commonjs",
+    "typeRoots": [
+      "node_modules/@types",
+      "node_modules/typed-tuple-type",
+      "node_modules/@whatasoda/types",
+      "src/types"
+    ]
+  },
+  "include": ["./**/*"],
+  "exclude": ["node_modules"]
+}
