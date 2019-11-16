@@ -73,10 +73,24 @@ declare global {
     inputs: Readonly<InputsVectorMap<I>>;
     output: Readonly<VectorMap[O]>;
   }
+
+  type AnyVectorNode = VectorNode<any, any>;
   interface VectorNode<I extends InputsVectorSchema, O extends OneOfVectorType> extends VectorNodeSchema<I, O> {
     readonly nodeId: number;
-    readonly update: /* TODO: scheduler implementation */ () => Promise<void>;
+    readonly update: () => Promise<void>;
   }
 
+  interface NodeFactoryCreator<I extends InputsVectorSchema, O extends OneOfVectorType, P extends object> {
+    (scheduler: InternalScheduler): NodeFactory<I, O, P>;
+  }
+  interface NodeFactory<I extends InputsVectorSchema, O extends OneOfVectorType, P extends object> {
+    (inputNodes: InputsNodeMap<I>, props: P): VectorNode<I, O>;
+  }
+  interface NodeFactoryCreatorMap extends Record<string, NodeFactoryCreator<any, any, any>> {}
+
   // Scheduler
+  interface InternalScheduler {
+    push: <T extends AnyVectorNode>(vector: T) => T;
+    updateIfPossible: (nodeId: number, update: () => Promise<void>) => Promise<boolean>;
+  }
 }
