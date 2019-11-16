@@ -1,5 +1,5 @@
 import ts from 'typescript';
-import VectorCreators, { ARRAY_TYPE_MAP, DIMENSIONS } from '../../../src/vector';
+import { VectorCreators, ARRAY_TYPE_MAP, DIMENSIONS } from '../../../src/vector';
 
 const lifetimeInterfaceName: Record<OneOfLifetime, string> = {
   moment: 'Moment',

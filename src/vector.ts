@@ -18,21 +18,28 @@ const lifetimeEntries = Object.entries(LIFETIME_MAP) as [
   OneOfLifetime,
   LifetimeApplicationFunc<OneOfVector['value']>,
 ][];
-const VectorCreators = (arrayTypeEntries.reduce<Record<string, AnyVectorCreator>>((acc, [arrayType, constructor]) => {
-  DIMENSIONS.forEach((dimension) => {
-    lifetimeEntries.forEach(([lifetime, fn]) => {
-      const type = `${arrayType}-${dimension}-${lifetime}`;
-      const schema = { arrayType, dimension, lifetime };
-      const creator: AnyVectorCreator = (length) => {
-        const value = fn(constructor, dimension, length);
-        return { value, type, schema };
-      };
-      creator.type = type;
-      creator.schema = schema;
-      acc[creator.type] = creator;
+export const VectorCreators = arrayTypeEntries.reduce<Record<string, AnyVectorCreator>>(
+  (acc, [arrayType, constructor]) => {
+    DIMENSIONS.forEach((dimension) => {
+      lifetimeEntries.forEach(([lifetime, fn]) => {
+        const type = `${arrayType}-${dimension}-${lifetime}`;
+        const schema = { arrayType, dimension, lifetime };
+        const creator: AnyVectorCreator = (length) => {
+          const value = fn(constructor, dimension, length);
+          return { value, type, schema };
+        };
+        creator.type = type;
+        creator.schema = schema;
+        acc[creator.type] = creator;
+      });
     });
-  });
-  return acc;
-}, {}) as unknown) as VectorCreatorMap;
+    return acc;
+  },
+  {},
+);
 
-export default VectorCreators;
+const Vector = <T extends OneOfVectorType>(type: T, length?: number): VectorMap[T] => {
+  return VectorCreators[type](length) as VectorMap[T];
+};
+
+export default Vector;

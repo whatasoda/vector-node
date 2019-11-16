@@ -2,10 +2,10 @@ import { ARRAY_TYPE_MAP, DIMENSIONS } from '../vector';
 
 declare global {
   // interfaces to be hydrated by code generation and related types
-  interface VectorCreatorMapFromGeneration {}
+  interface VectorMapFromGeneration {}
 
-  type OneOfVectorType = FallthroughKey<VectorCreatorMapFromGeneration>;
-  type VectorCreatorMap = Fallthrough<VectorCreatorMapFromGeneration, Record<string, AnyVectorCreator>>;
+  type OneOfVectorType = FallthroughKey<VectorMapFromGeneration>;
+  type VectorMap = Fallthrough<VectorMapFromGeneration, Record<string, OneOfVector>>;
 }
 
 declare global {
