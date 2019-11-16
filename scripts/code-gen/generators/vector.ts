@@ -38,14 +38,7 @@ const hydrateVectorCreatorMap = () => {
     [],
   );
 
-  return ts.createInterfaceDeclaration(
-    undefined,
-    undefined,
-    'VectorCreatorMapFromGeneration',
-    undefined,
-    undefined,
-    members,
-  );
+  return ts.createInterfaceDeclaration(undefined, undefined, 'VectorMapFromGeneration', undefined, undefined, members);
 };
 
 export default hydrateVectorCreatorMap;

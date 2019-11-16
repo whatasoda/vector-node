@@ -1,5 +1,5 @@
 /* DO NOT EDIT MANUALLY. THIS IS GENERATED FILE. */
-interface VectorCreatorMapFromGeneration {
+interface VectorMapFromGeneration {
   readonly 'i8-1-moment': Moment<Int8Tuple<1>>;
   readonly 'i8-1-sequence': Sequence<Int8Tuple<1>>;
   readonly 'i8-2-moment': Moment<Int8Tuple<2>>;
