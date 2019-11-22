@@ -1,4 +1,4 @@
-import Vector from './vector';
+import { createInputNode } from './node';
 
 const createFrameUtil = (frameMap: Record<number, number>, updaterMap: Record<number, () => void>) => {
   let frame = 0;
@@ -30,10 +30,15 @@ const Scheduler = <I extends InputsVectorSchema>(schema: I) => {
   const UpdaterMap: Record<number, () => void> = {};
   const { increment, updateIfPossible } = createFrameUtil(FrameMap, UpdaterMap);
 
-  const inputs = InputSchema.reduce<Record<string, OneOfVector>>((acc, [name, type]) => {
-    acc[name] = Vector(type);
-    return acc;
-  }, {}) as InputsVectorMap<I>;
+  const [inputsNode, inputsVector] = InputSchema.reduce<[Record<string, AnyVectorNode>, Record<string, OneOfVector>]>(
+    (acc, [name, type]) => {
+      const { node, vector } = createInputNode(type);
+      acc[0][name] = node;
+      acc[1][name] = vector;
+      return acc;
+    },
+    [{}, {}],
+  ) as [InputsNodeMap<I>, InputsVectorMap<I>];
 
   const push = <T extends AnyVectorNode>(vector: T) => {
     if (!NodeQueue.includes(vector)) {
@@ -49,14 +54,14 @@ const Scheduler = <I extends InputsVectorSchema>(schema: I) => {
   };
 
   const update = async (updater: (input: InputsVectorMap<I>) => Promise<void>) => {
-    updater(inputs);
+    updater(inputsVector);
     increment();
     NodeQueue.forEach(({ nodeId }) => updateIfPossible(nodeId));
   };
 
   const construct = <T extends NodeFactoryCreatorMap>(
     definedNodeMap: T,
-    cunstructor: (factories: BindedNodeFactoryCreatorMap<T>) => void,
+    cunstructor: (factories: BindedNodeFactoryCreatorMap<T>, inputs: InputsNodeMap<I>) => void,
   ) => {
     const factories = Object.entries(definedNodeMap).reduce<Record<string, NodeFactory<any, any, any>>>(
       (acc, [name, create]) => {
@@ -65,7 +70,7 @@ const Scheduler = <I extends InputsVectorSchema>(schema: I) => {
       },
       {},
     ) as BindedNodeFactoryCreatorMap<T>;
-    cunstructor(factories);
+    cunstructor(factories, inputsNode);
     return update;
   };
 

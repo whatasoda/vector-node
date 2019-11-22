@@ -2,6 +2,7 @@ import Vector from './vector';
 
 const OutputVectorContainer: Record<number, OneOfVector> = {};
 let nodeCount = 0;
+let inputNodeCount = -1;
 
 const defineNode = <I extends InputsVectorSchema, O extends OneOfVectorType, P extends object>(
   schema: VectorNodeSchema<I, O>,
@@ -56,6 +57,18 @@ const defineNode = <I extends InputsVectorSchema, O extends OneOfVectorType, P e
   };
 
   return createNodeFactory;
+};
+
+const PSEUDO_INPUTS = Object.create(null);
+export const createInputNode = <O extends OneOfVectorType>(
+  output: O,
+): { node: VectorNode<{}, O>; vector: VectorMap[O] } => {
+  const nodeId = inputNodeCount--;
+  const vector = Vector(output);
+  OutputVectorContainer[nodeId] = vector;
+  const node = { nodeId, nodeType: 'PseudoNode', inputs: PSEUDO_INPUTS, output };
+
+  return { node, vector };
 };
 
 export default defineNode;
