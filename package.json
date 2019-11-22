@@ -4,6 +4,7 @@
   "description": "vector-node",
   "main": "lib/index.js",
   "scripts": {
+    "prepublishOnly": "npm run build",
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "rm -rf lib && tsc --project tsconfig.lib.json",
     "generate": "nodemon --config scripts/code-gen/nodemon.json",

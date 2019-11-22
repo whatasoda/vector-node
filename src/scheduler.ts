@@ -64,7 +64,7 @@ const Scheduler = <I extends InputsVectorSchema>(schema: I) => {
     [K in keyof T]: ReturnType<T[K]>;
   };
 
-  const update = async (updater: (input: InputsVectorMap<I>) => Promise<void>) => {
+  const update = (updater: (input: InputsVectorMap<I>) => void) => {
     updater(inputsVector);
     increment();
     NodeQueue.forEach(({ nodeId }) => updateIfPossible(nodeId));

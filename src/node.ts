@@ -19,7 +19,7 @@ let inputNodeCount = -1;
 
 const defineNode = <I extends InputsVectorSchema, O extends OneOfVectorType, P extends object>(
   schema: VectorNodeSchema<I, O>,
-  logic: (props: P) => (io: VectorNodeIO<I, O>) => Promise<void>,
+  logic: (props: P) => (io: VectorNodeIO<I, O>) => void,
 ): NodeFactoryCreator<I, O, P> => {
   const InputSchema = Object.entries(schema.inputs) as [string, OneOfVectorType][];
 
