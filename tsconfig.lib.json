@@ -5,6 +5,7 @@
     "rootDir": "./src",
     "target": "esnext",
     "declaration": true,
+    "sourceMap": false,
     "types": [],
   },
   "include": ["src"],
