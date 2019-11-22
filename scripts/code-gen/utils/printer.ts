@@ -4,33 +4,38 @@ import prettier from 'prettier';
 const HEADER_TEXT = 'DO NOT EDIT MANUALLY. THIS IS GENERATED FILE.';
 
 interface PrinterOptions {
+  header?: string;
   prettierrc?: prettier.Options;
 }
 
 export const printStatements = (
   filePath: string,
-  statements: ts.Statement[],
+  file: ts.SourceFile,
   sys: ts.System,
   options: PrinterOptions = {},
 ) => {
-  const { prettierrc = readDefaultPrettierrc(sys) } = options;
-  const resultFile = ts.createSourceFile('', '', ts.ScriptTarget.Latest, false, ts.ScriptKind.TS);
+  const { header, prettierrc = readDefaultPrettierrc(sys) } = options;
   const printer = ts.createPrinter({ newLine: ts.NewLineKind.LineFeed });
 
   const nodeArray = ts.createNodeArray([
-    ts.addSyntheticLeadingComment(
-      ts.createEmptyStatement(),
-      ts.SyntaxKind.MultiLineCommentTrivia,
-      ` ${HEADER_TEXT} `,
-      true,
-    ),
-    ...statements,
+    createCommentStatement(HEADER_TEXT),
+    ...(header ? [createCommentStatement(header)] : []),
+    ...file.statements,
   ]);
   let result: string;
-  result = printer.printList(ts.ListFormat.SourceFileStatements, nodeArray, resultFile);
+  result = printer.printList(ts.ListFormat.SourceFileStatements, nodeArray, file);
   result = prettier.format(result, { ...prettierrc, parser: 'typescript' });
 
   sys.writeFile(filePath, result);
+};
+
+const createCommentStatement = (text: string) => {
+  return ts.addSyntheticLeadingComment(
+    ts.createEmptyStatement(),
+    ts.SyntaxKind.MultiLineCommentTrivia,
+    ` ${text} `,
+    true,
+  );
 };
 
 const readDefaultPrettierrc = (sys: ts.System): prettier.Options => {

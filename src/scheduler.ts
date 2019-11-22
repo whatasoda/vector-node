@@ -1,4 +1,15 @@
 import { createInputNode } from './node';
+import {
+  InputsVectorSchema,
+  OneOfVectorType,
+  AnyVectorNode,
+  OneOfVector,
+  InputsNodeMap,
+  InputsVectorMap,
+  InternalScheduler,
+  NodeFactoryCreatorMap,
+  NodeFactory,
+} from 'decls';
 
 const createFrameUtil = (frameMap: Record<number, number>, updaterMap: Record<number, () => void>) => {
   let frame = 0;

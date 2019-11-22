@@ -1,3 +1,15 @@
+import {
+  LifetimeApplicationMap,
+  OneOfArrayType,
+  OneOfArrayConstructor,
+  OneOfLifetime,
+  LifetimeApplicationFunc,
+  AnyVector,
+  AnyVectorCreator,
+  OneOfVectorType,
+  VectorMap,
+} from 'decls';
+
 export const ARRAY_TYPE_MAP = {
   i8: Int8Array,
   u8: Uint8Array,

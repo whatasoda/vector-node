@@ -1,0 +1,19 @@
+{
+  "exec": "node -r ts-node/register ./scripts/code-gen",
+  "env": {
+    "TS_NODE_FILES": true
+  },
+  "ext": "js,jsx,ts,tsx",
+  "ignore": [
+    ".git",
+    "node_modules/**/node_modules",
+    "**/__test__/*.js",
+    "**/__test__/*.ts",
+    "src/decls.ts"
+  ],
+  "restartable": "rs",
+  "watch": [
+    "src",
+    "scripts/code-gen"
+  ]
+}

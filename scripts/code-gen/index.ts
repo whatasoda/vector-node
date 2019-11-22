@@ -5,11 +5,12 @@ import { printStatements } from './utils/printer';
 import prettierrc from '@whatasoda/eslint-config/.prettierrc.json';
 
 const root = path.resolve(__dirname, '../../');
-const outfile = path.join(root, 'src/types/custom.generated.d.ts');
+const outfile = path.join(root, 'src/decls.ts');
 
 const generate = async () => {
-  const statements: ts.Statement[] = [hydrateVectorCreatorMap()];
-  await printStatements(outfile, statements, ts.sys, { prettierrc: prettierrc as any });
+  const header = 'If you want to modify types, modify decls.base.ts first and regenerate this file';
+  const file = hydrateVectorCreatorMap();
+  await printStatements(outfile, file, ts.sys, { header, prettierrc: prettierrc as any });
 };
 
 if (process.mainModule === module) {

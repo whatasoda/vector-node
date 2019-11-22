@@ -1,4 +1,17 @@
 import Vector from './vector';
+import {
+  OneOfVector,
+  InputsVectorSchema,
+  OneOfVectorType,
+  VectorNodeSchema,
+  VectorNodeIO,
+  NodeFactoryCreator,
+  InternalScheduler,
+  InputsNodeMap,
+  VectorNode,
+  InputsVectorMap,
+  VectorMap,
+} from 'decls';
 
 const OutputVectorContainer: Record<number, OneOfVector> = {};
 let nodeCount = 0;

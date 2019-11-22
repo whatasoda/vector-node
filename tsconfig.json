@@ -5,12 +5,13 @@
     "downlevelIteration": true,
     "rootDir": "./",
     "module": "commonjs",
+    "baseUrl": "./",
     "typeRoots": [
-      "node_modules/@types",
-      "node_modules/typed-tuple-type",
-      "node_modules/@whatasoda/types",
-      "src/types"
-    ]
+      "node_modules/@types"
+    ],
+    "paths": {
+      "decls": ["src/decls.ts", "src/decls.base.ts"]
+    }
   },
   "include": ["./**/*"],
   "exclude": ["node_modules"]
