@@ -1,16 +1,13 @@
 import Vector from './vector';
 
-const createFrameUtil = (frameMap: Record<number, number>) => {
+const createFrameUtil = (frameMap: Record<number, number>, updaterMap: Record<number, () => void>) => {
   let frame = 0;
   const increment = () => ++frame;
 
-  const updateIfPossible: InternalScheduler['updateIfPossible'] = async (
-    nodeId: number,
-    update: () => Promise<void>,
-  ): Promise<boolean> => {
+  const updateIfPossible = (nodeId: number): boolean => {
     const curr = frameMap[nodeId];
     if (curr < frame) {
-      await update();
+      updaterMap[nodeId]?.();
       frameMap[nodeId]++;
       return true;
     }
@@ -30,7 +27,8 @@ const Scheduler = <I extends InputsVectorSchema>(schema: I) => {
    */
   const NodeQueue: AnyVectorNode[] = [];
   const FrameMap: Record<number, number> = {};
-  const { increment, updateIfPossible } = createFrameUtil(FrameMap);
+  const UpdaterMap: Record<number, () => void> = {};
+  const { increment, updateIfPossible } = createFrameUtil(FrameMap, UpdaterMap);
 
   const inputs = InputSchema.reduce<Record<string, OneOfVector>>((acc, [name, type]) => {
     acc[name] = Vector(type);
@@ -45,7 +43,7 @@ const Scheduler = <I extends InputsVectorSchema>(schema: I) => {
     return vector;
   };
 
-  const internalScheduler: InternalScheduler = { push, updateIfPossible };
+  const internalScheduler: InternalScheduler = { push };
   type BindedNodeFactoryCreatorMap<T extends NodeFactoryCreatorMap> = {
     [K in keyof T]: ReturnType<T[K]>;
   };
@@ -53,10 +51,7 @@ const Scheduler = <I extends InputsVectorSchema>(schema: I) => {
   const update = async (updater: (input: InputsVectorMap<I>) => Promise<void>) => {
     updater(inputs);
     increment();
-    await NodeQueue.reduce<Promise<void>>(async (prev, { update }) => {
-      await prev;
-      await update();
-    }, Promise.resolve());
+    NodeQueue.forEach(({ nodeId }) => updateIfPossible(nodeId));
   };
 
   const construct = <T extends NodeFactoryCreatorMap>(

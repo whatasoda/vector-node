@@ -9,13 +9,18 @@ const defineNode = <I extends InputsVectorSchema, O extends OneOfVectorType, P e
 ): NodeFactoryCreator<I, O, P> => {
   const InputSchema = Object.entries(schema.inputs) as [string, OneOfVectorType][];
 
-  const createNodeFactory = ({ push, updateIfPossible }: InternalScheduler) => {
+  const createNodeFactory = ({ push }: InternalScheduler) => {
     const factory = (inputNodes: InputsNodeMap<I>, props: P): VectorNode<I, O> => {
       const nodeId = ++nodeCount;
 
       let isValid = false;
       InputSchema.forEach(([name, type]) => {
-        const inputType = inputNodes[name]?.output;
+        const { nodeId, output: inputType } = inputNodes[name] || {};
+        if (!OutputVectorContainer[nodeId]) {
+          // eslint-disable-next-line no-console
+          console.log('TODO: error message');
+          isValid = false;
+        }
         if (inputType !== type) {
           // eslint-disable-next-line no-console
           console.log('TODO: log error message');
@@ -34,29 +39,17 @@ const defineNode = <I extends InputsVectorSchema, O extends OneOfVectorType, P e
       }, {}) as InputsVectorMap<I>;
 
       const evaluator = logic(props);
-      const updater = async () => {
+      const io = { inputs, output };
+      const updater = () => {
         InputSchema.forEach(([name]) => {
           const from = OutputVectorContainer[inputNodes[name].nodeId];
-          if (!from) throw new Error('TODO: error message');
-          /**
-           * we can skip cheking the existence of the `to`
-           * because it is already ensured by `isValid`
-           */
           const to = inputs[name].value;
           to.set(from.value);
         });
-        await evaluator({ inputs, output });
+        evaluator(io);
       };
 
-      const update = async () => {
-        const isUpdated = await updateIfPossible(nodeId, updater);
-        if (!isUpdated) {
-          // eslint-disable-next-line no-console
-          console.warn('TODO: warning message');
-        }
-      };
-
-      return push({ nodeId, ...schema, update });
+      return push({ nodeId, ...schema }, updater);
     };
 
     return factory;

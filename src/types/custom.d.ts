@@ -77,7 +77,8 @@ declare global {
   type AnyVectorNode = VectorNode<any, any>;
   interface VectorNode<I extends InputsVectorSchema, O extends OneOfVectorType> extends VectorNodeSchema<I, O> {
     readonly nodeId: number;
-    readonly update: () => Promise<void>;
+    // TODO: accesser for output values
+    // TODO: implement event target feature
   }
 
   interface NodeFactoryCreator<I extends InputsVectorSchema, O extends OneOfVectorType, P extends object> {
@@ -90,7 +91,6 @@ declare global {
 
   // Scheduler
   interface InternalScheduler {
-    push: <T extends AnyVectorNode>(vector: T) => T;
-    updateIfPossible: (nodeId: number, update: () => Promise<void>) => Promise<boolean>;
+    push: <T extends AnyVectorNode>(vector: T, updater: () => void) => T;
   }
 }
