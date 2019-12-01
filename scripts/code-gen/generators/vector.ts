@@ -4,11 +4,9 @@ import { VectorCreators, ARRAY_TYPE_MAP, DIMENSIONS } from '../../../src/vector'
 import { OneOfLifetime, OneOfDimension, OneOfArrayType, AnyVectorCreator } from 'decls';
 
 const baseFile = path.resolve(__dirname, '../../../src/decls.base.ts');
-const INTERFACE_NAME = 'VectorMap';
 
 const lifetimeInterfaceName: Record<OneOfLifetime, string> = {
   moment: 'Moment',
-  sequence: 'Sequence',
 };
 
 const hydrateVectorCreatorMap = () => {
@@ -16,29 +14,21 @@ const hydrateVectorCreatorMap = () => {
   if (!baseText) throw new Error('no base file found');
 
   const file = ts.createSourceFile('decls.base.ts', baseText, ts.ScriptTarget.Latest, false, ts.ScriptKind.TS);
-  const { statements } = file;
+  const { kindMap, members } = createVectorMapMembers();
 
-  const targetIndex = statements.findIndex((statement) => {
-    if (!ts.isInterfaceDeclaration(statement)) return false;
-    if (ts.idText(statement.name) !== INTERFACE_NAME) return false;
-    return true;
+  let statements = overwriteInterfaceDeclaration([...file.statements], 'VectorMap', members);
+
+  Object.entries(kindMap).forEach(([lifetimeName, typeList]) => {
+    statements = overwriteTypeAlias(
+      statements,
+      `OneOf${lifetimeName}VectorType`,
+      ts.createUnionTypeNode(typeList.map((type) => ts.createLiteralTypeNode(ts.createStringLiteral(type)))),
+    );
   });
-
-  if (targetIndex === -1) throw new Error(`No interface '${INTERFACE_NAME}' found`);
-
-  const targetStatement = statements[targetIndex] as ts.InterfaceDeclaration;
-  const hydratedStatement = ts.createInterfaceDeclaration(
-    targetStatement.decorators,
-    targetStatement.modifiers,
-    targetStatement.name,
-    targetStatement.typeParameters,
-    targetStatement.heritageClauses,
-    createVectorMapMembers(),
-  );
 
   return ts.updateSourceFileNode(
     file,
-    [...statements.slice(0, targetIndex), hydratedStatement, ...statements.slice(targetIndex + 1)],
+    statements,
     false,
     file.referencedFiles,
     file.typeReferenceDirectives,
@@ -62,24 +52,53 @@ const createVectorMapMembers = () => {
     return acc;
   }, {} as any);
 
-  const members = (Object.values(VectorCreators) as AnyVectorCreator[]).reduce<ts.PropertySignature[]>(
-    (acc, { type, schema }) => {
-      const { arrayType, dimension, lifetime } = schema;
-      acc.push(
-        ts.createPropertySignature(
-          [ts.createModifier(ts.SyntaxKind.ReadonlyKeyword)],
-          ts.createStringLiteral(type),
-          undefined,
-          ts.createTypeReferenceNode(lifetimeInterfaceName[lifetime], [tupleNodes[arrayType](dimension)]),
-          undefined,
-        ),
-      );
-      return acc;
-    },
-    [],
-  );
+  const members: ts.PropertySignature[] = [];
+  const kindMap = Object.values(lifetimeInterfaceName).reduce<Record<string, string[]>>((acc, key) => {
+    acc[key] = [];
+    return acc;
+  }, {});
+  (Object.values(VectorCreators) as AnyVectorCreator[]).forEach(({ type, schema }) => {
+    const { arrayType, dimension, lifetime } = schema;
+    const lifetimeName = lifetimeInterfaceName[lifetime];
+    kindMap[lifetimeName].push(type);
+    members.push(
+      ts.createPropertySignature(
+        [ts.createModifier(ts.SyntaxKind.ReadonlyKeyword)],
+        ts.createStringLiteral(type),
+        undefined,
+        ts.createTypeReferenceNode(lifetimeInterfaceName[lifetime], [tupleNodes[arrayType](dimension)]),
+        undefined,
+      ),
+    );
+  });
 
-  return members;
+  return { members, kindMap };
+};
+
+const overwriteTypeAlias = (statements: ts.Statement[], name: string, type: ts.TypeNode) => {
+  const index = statements.findIndex((statement) => {
+    if (!ts.isTypeAliasDeclaration(statement)) return false;
+    if (ts.idText(statement.name) !== name) return false;
+    return true;
+  });
+  if (index === -1) return statements;
+
+  const statement = ts.getMutableClone(statements[index] as ts.TypeAliasDeclaration);
+  statement.type = type;
+  return [...statements.slice(0, index), statement, ...statements.slice(index + 1)];
+};
+
+const overwriteInterfaceDeclaration = (statements: ts.Statement[], name: string, members: ts.TypeElement[]) => {
+  const index = statements.findIndex((statement) => {
+    if (!ts.isInterfaceDeclaration(statement)) return false;
+    if (ts.idText(statement.name) !== name) return false;
+    return true;
+  });
+  if (index === -1) return statements;
+
+  const statement = ts.getMutableClone(statements[index] as ts.InterfaceDeclaration);
+  statement.members = ts.createNodeArray(members);
+  return [...statements.slice(0, index), statement, ...statements.slice(index + 1)];
 };
 
 export default hydrateVectorCreatorMap;

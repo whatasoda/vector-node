@@ -6,6 +6,7 @@ export interface VectorMap {
   // interfaces to be hydrated by code generation and related types
   [type: string]: AnyVector;
 }
+export type OneOfMomentVectorType = string;
 
 export type OneOfVectorType = Extract<keyof VectorMap, string>;
 export type OneOfVector = VectorMap[Extract<OneOfVectorType, keyof VectorMap>];
@@ -24,11 +25,11 @@ export type OneOfArray = InstanceType<OneOfArrayConstructor>;
 
 export interface AnyVectorCreator extends VectorCreator<AnyVector> {}
 export interface VectorCreator<V extends AnyVector> extends VectorBase {
-  (length?: number): V;
+  (): V;
 }
 
 export type AnyVector = Vector<OneOfArray>;
-export type Vector<A extends OneOfArray> = Moment<A> | Sequence<A>;
+export type Vector<A extends OneOfArray> = Moment<A>;
 export interface VectorBase {
   type: string;
   schema: Readonly<VectorSchema>;
@@ -36,17 +37,12 @@ export interface VectorBase {
 export interface Moment<V extends OneOfArray> extends VectorBase {
   value: V;
 }
-export interface Sequence<V extends OneOfArray> extends VectorBase {
-  // TODO: implement sequence
-  value: V;
-}
 
 export interface LifetimeApplicationFunc<T extends AnyVector['value']> {
-  (constructor: OneOfArrayConstructor, dimension: number, length?: number): T;
+  (constructor: OneOfArrayConstructor, dimension: number): T;
 }
 export interface LifetimeApplicationMap {
   moment: LifetimeApplicationFunc<Moment<any>['value']>;
-  sequence: LifetimeApplicationFunc<Sequence<any>['value']>;
 }
 
 // Node

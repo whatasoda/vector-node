@@ -21,8 +21,6 @@ export const ARRAY_TYPE_MAP = {
 export const DIMENSIONS = [1, 2, 3, 4, 6, 9, 16] as const;
 export const LIFETIME_MAP: LifetimeApplicationMap = {
   moment: (c, d) => new c(d),
-  // TODO: implement sequence
-  sequence: (c, d, _ = 1) => new c(d),
 };
 
 const arrayTypeEntries = Object.entries(ARRAY_TYPE_MAP) as [OneOfArrayType, OneOfArrayConstructor][];
@@ -33,8 +31,8 @@ export const VectorCreators = arrayTypeEntries.reduce<Record<string, AnyVectorCr
       lifetimeEntries.forEach(([lifetime, fn]) => {
         const type = `${arrayType}-${dimension}-${lifetime}`;
         const schema = { arrayType, dimension, lifetime };
-        const creator: AnyVectorCreator = (length) => {
-          const value = fn(constructor, dimension, length);
+        const creator: AnyVectorCreator = () => {
+          const value = fn(constructor, dimension);
           return { value, type, schema };
         };
         creator.type = type;
@@ -47,8 +45,8 @@ export const VectorCreators = arrayTypeEntries.reduce<Record<string, AnyVectorCr
   {},
 );
 
-const Vector = <T extends OneOfVectorType>(type: T, length?: number): VectorMap[T] => {
-  return VectorCreators[type](length) as VectorMap[T];
+const Vector = <T extends OneOfVectorType>(type: T): VectorMap[T] => {
+  return VectorCreators[type]() as VectorMap[T];
 };
 
 export default Vector;
