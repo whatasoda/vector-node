@@ -68,7 +68,7 @@ export interface VectorNodeIO<I extends InputsVectorSchema, O extends OneOfVecto
 export type AnyVectorNode = VectorNode<any, any>;
 export interface VectorNode<I extends InputsVectorSchema, O extends OneOfVectorType> extends VectorNodeSchema<I, O> {
   readonly nodeId: number;
-  // TODO: accesser for output values
+  readonly value: Readonly<VectorMap[O]>;
   // TODO: implement event target feature
 }
 

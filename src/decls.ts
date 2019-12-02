@@ -141,6 +141,7 @@ export interface VectorNodeIO<I extends InputsVectorSchema, O extends OneOfVecto
 export type AnyVectorNode = VectorNode<any, any>;
 export interface VectorNode<I extends InputsVectorSchema, O extends OneOfVectorType> extends VectorNodeSchema<I, O> {
   readonly nodeId: number;
+  readonly value: Readonly<VectorMap[O]>;
 }
 export interface NodeFactoryCreator<I extends InputsVectorSchema, O extends OneOfVectorType, P extends object> {
   (scheduler: InternalScheduler): NodeFactory<I, O, P>;

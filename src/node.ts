@@ -63,7 +63,7 @@ const defineNode = <I extends InputsVectorSchema, O extends OneOfVectorType, P e
         evaluator(io);
       };
 
-      return push({ nodeId, ...schema }, updater);
+      return push({ nodeId, value: output, ...schema }, updater);
     };
 
     return factory;
@@ -79,7 +79,7 @@ export const createInputNode = <O extends OneOfVectorType>(
   const nodeId = inputNodeCount--;
   const vector = Vector(output);
   OutputVectorContainer[nodeId] = vector;
-  const node = { nodeId, nodeType: 'PseudoNode', inputs: PSEUDO_INPUTS, output };
+  const node = { nodeId, nodeType: 'PseudoNode', inputs: PSEUDO_INPUTS, output, value: vector };
 
   return { node, vector };
 };
