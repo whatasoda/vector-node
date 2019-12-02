@@ -1,6 +1,6 @@
 {
   "name": "vector-node",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "vector-node",
   "main": "lib/index.js",
   "scripts": {
