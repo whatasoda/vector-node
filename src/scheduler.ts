@@ -51,9 +51,10 @@ const Scheduler = <I extends InputsVectorSchema>(schema: I) => {
     [{}, {}],
   ) as [InputsNodeMap<I>, InputsVectorMap<I>];
 
-  const push = <T extends AnyVectorNode>(vector: T) => {
+  const push = <T extends AnyVectorNode>(vector: T, updater: () => void) => {
     if (!NodeQueue.includes(vector)) {
       NodeQueue.push(vector);
+      UpdaterMap[vector.nodeId] = updater;
       FrameMap[vector.nodeId] = -1;
     }
     return vector;
