@@ -27,7 +27,7 @@ const defineNode = <I extends InputsVectorSchema, O extends OneOfVectorType, P e
     const factory = (inputNodes: InputsNodeMap<I>, props: P): VectorNode<I, O> => {
       const nodeId = ++nodeCount;
 
-      let isValid = false;
+      let isValid = true;
       InputSchema.forEach(([name, type]) => {
         const { nodeId, output: inputType } = inputNodes[name] || {};
         if (!OutputVectorContainer[nodeId]) {
