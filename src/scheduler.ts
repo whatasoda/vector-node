@@ -64,25 +64,23 @@ const Scheduler = <I extends InputsVectorSchema>(schema: I) => {
     [K in keyof T]: ReturnType<T[K]>;
   };
 
-  const update = (updater: (input: InputsVectorMap<I>) => void) => {
-    updater(inputsVector);
-    increment();
-    NodeQueue.forEach(({ nodeId }) => updateIfPossible(nodeId));
-  };
-
-  const construct = <T extends NodeFactoryCreatorMap>(
+  const construct = <T extends NodeFactoryCreatorMap, U extends object>(
     definedNodeMap: T,
-    cunstructor: (factories: BindedNodeFactoryCreatorMap<T>, inputs: InputsNodeMap<I>) => void,
+    cunstructor: (factories: BindedNodeFactoryCreatorMap<T>, inputs: InputsNodeMap<I>) => U,
   ) => {
-    const factories = Object.entries(definedNodeMap).reduce<Record<string, NodeFactory<any, any, any>>>(
-      (acc, [name, create]) => {
-        acc[name] = create(internalScheduler);
-        return acc;
-      },
-      {},
-    ) as BindedNodeFactoryCreatorMap<T>;
-    cunstructor(factories, inputsNode);
-    return update;
+    type TmpBinded = Record<string, NodeFactory<any, any, any>>;
+    const factories = Object.entries(definedNodeMap).reduce<TmpBinded>((acc, [name, create]) => {
+      acc[name] = create(internalScheduler);
+      return acc;
+    }, {}) as BindedNodeFactoryCreatorMap<T>;
+
+    const tree = cunstructor(factories, inputsNode);
+    return (updater: (input: InputsVectorMap<I>) => void) => {
+      updater(inputsVector);
+      increment();
+      NodeQueue.forEach(({ nodeId }) => updateIfPossible(nodeId));
+      return tree as Readonly<U>;
+    };
   };
 
   return construct;
