@@ -55,7 +55,6 @@ export type InputsNodeMap<I extends InputsVectorSchema> = {
 };
 
 export interface VectorNodeSchema<I extends InputsVectorSchema, O extends OneOfVectorType> {
-  readonly nodeType: string;
   readonly inputs: I;
   readonly output: O;
 }

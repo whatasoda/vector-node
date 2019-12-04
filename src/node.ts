@@ -79,7 +79,7 @@ export const createInputNode = <O extends OneOfVectorType>(
   const nodeId = inputNodeCount--;
   const vector = Vector(output);
   OutputVectorContainer[nodeId] = vector;
-  const node = { nodeId, nodeType: 'PseudoNode', inputs: PSEUDO_INPUTS, output, value: vector.value };
+  const node = { nodeId, inputs: PSEUDO_INPUTS, output, value: vector.value };
 
   return { node, vector };
 };

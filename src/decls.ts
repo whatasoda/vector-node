@@ -130,7 +130,6 @@ export type InputsNodeMap<I extends InputsVectorSchema> = {
   [T in keyof I]: VectorNode<any, I[T]>;
 };
 export interface VectorNodeSchema<I extends InputsVectorSchema, O extends OneOfVectorType> {
-  readonly nodeType: string;
   readonly inputs: I;
   readonly output: O;
 }
