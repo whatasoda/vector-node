@@ -32,6 +32,7 @@
     "nodemon": "^2.0.0",
     "prettier": "^1.19.1",
     "ts-node": "^8.5.2",
+    "tsconfig-paths": "^3.9.0",
     "typed-tuple-type": "^1.0.2",
     "typescript": "^3.7.2"
   },

@@ -1,5 +1,5 @@
 {
-  "exec": "node -r ts-node/register ./scripts/code-gen",
+  "exec": "node -r ts-node/register -r tsconfig-paths/register ./scripts/code-gen",
   "env": {
     "TS_NODE_FILES": true
   },
@@ -9,7 +9,7 @@
     "node_modules/**/node_modules",
     "**/__test__/*.js",
     "**/__test__/*.ts",
-    "src/decls.ts"
+    "src/gen/vectorMap.ts"
   ],
   "restartable": "rs",
   "watch": [

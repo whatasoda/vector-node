@@ -9,7 +9,7 @@ import {
   InternalScheduler,
   NodeFactoryCreatorMap,
   NodeFactory,
-} from 'decls';
+} from './decls';
 
 const createFrameUtil = (frameMap: Record<number, number>, updaterMap: Record<number, () => void>) => {
   let frame = 0;

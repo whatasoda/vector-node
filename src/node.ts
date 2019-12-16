@@ -11,7 +11,7 @@ import {
   VectorNode,
   InputsVectorMap,
   VectorMap,
-} from 'decls';
+} from './decls';
 
 const OutputVectorContainer: Record<number, OneOfVector> = {};
 let nodeCount = 0;
@@ -57,13 +57,13 @@ const defineNode = <I extends InputsVectorSchema, O extends OneOfVectorType, P e
       const updater = () => {
         InputSchema.forEach(([name]) => {
           const from = OutputVectorContainer[inputNodes[name].nodeId];
-          const to = inputs[name].value;
-          to.set(from.value);
+          const to = inputs[name];
+          to.set(from);
         });
         evaluator(io);
       };
 
-      return push({ nodeId, value: output.value, ...schema }, updater);
+      return push({ nodeId, value: output, ...schema }, updater);
     };
 
     return factory;
@@ -79,7 +79,7 @@ export const createInputNode = <O extends OneOfVectorType>(
   const nodeId = inputNodeCount--;
   const vector = Vector(output);
   OutputVectorContainer[nodeId] = vector;
-  const node = { nodeId, inputs: PSEUDO_INPUTS, output, value: vector.value };
+  const node = { nodeId, inputs: PSEUDO_INPUTS, output, value: vector };
 
   return { node, vector };
 };

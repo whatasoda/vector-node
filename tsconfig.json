@@ -10,9 +10,9 @@
       "node_modules/@types"
     ],
     "paths": {
-      "decls": ["src/decls.ts", "src/decls.base.ts"]
+      "gen.vectorMap": ["src/gen/vectorMap.ts", "src/gen/vectorMap.base.ts"]
     }
   },
   "include": ["./**/*"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "lib"]
 }
