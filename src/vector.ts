@@ -1,7 +1,8 @@
-import { OneOfVectorType, VectorMap, VectorCreators } from './gen/vectorMap';
+import { VectorMap, OneOfVectorType } from './decls';
+import ArrayCreators from './typedArray';
 
 const Vector = <T extends OneOfVectorType>(type: T): VectorMap[T] => {
-  return VectorCreators[type]() as VectorMap[T];
+  return ArrayCreators[type]() as VectorMap[T];
 };
 
 export default Vector;

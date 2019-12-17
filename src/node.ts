@@ -1,87 +1,57 @@
-import Vector from './vector';
 import {
-  OneOfVector,
-  InputsVectorSchema,
-  OneOfVectorType,
-  VectorNodeSchema,
-  VectorNodeIO,
-  NodeFactoryCreator,
-  InternalScheduler,
-  InputsNodeMap,
+  VectorNodeDescriptor,
   VectorNode,
-  InputsVectorMap,
-  VectorMap,
+  VectorSchemaMap,
+  EventCreatorRecord,
+  VectorComponentFactory,
+  VectorComponent,
+  NodeConnectionBase,
+  NodeConnection,
+  VectorComponentLogicCreator,
+  AnyVectorComponent,
+  LogicUtility,
+  VectorNodeIO,
 } from './decls';
+import { addVectorEventListener } from './event';
 
-const OutputVectorContainer: Record<number, OneOfVector> = {};
+export const ComponentToLogicMap = new Map<
+  AnyVectorComponent,
+  (utils: LogicUtility<any>) => (io: VectorNodeIO<any, any>) => void
+>();
+
 let nodeCount = 0;
-let inputNodeCount = -1;
 
-const defineNode = <I extends InputsVectorSchema, O extends OneOfVectorType, P extends object>(
-  schema: VectorNodeSchema<I, O>,
-  logic: (props: P) => (io: VectorNodeIO<I, O>) => void,
-): NodeFactoryCreator<I, O, P> => {
-  const InputSchema = Object.entries(schema.inputs) as [string, OneOfVectorType][];
-
-  const createNodeFactory = ({ push }: InternalScheduler) => {
-    const factory = (inputNodes: InputsNodeMap<I>, props: P): VectorNode<I, O> => {
-      const nodeId = ++nodeCount;
-
-      let isValid = true;
-      InputSchema.forEach(([name, type]) => {
-        const { nodeId, output: inputType } = inputNodes[name] || {};
-        if (!OutputVectorContainer[nodeId]) {
-          // eslint-disable-next-line no-console
-          console.log('TODO: error message');
-          isValid = false;
-        }
-        if (inputType !== type) {
-          // eslint-disable-next-line no-console
-          console.log('TODO: log error message');
-          isValid = false;
-        }
-      });
-      if (!isValid) throw new Error('TODO: error message');
-
-      const output = Vector(schema.output);
-      OutputVectorContainer[nodeId] = output;
-
-      // TODO: use package local container like `output`
-      const inputs = InputSchema.reduce<Record<string, OneOfVector>>((acc, [name, type]) => {
-        acc[name] = Vector(type);
-        return acc;
-      }, {}) as InputsVectorMap<I>;
-
-      const evaluator = logic(props);
-      const io = { inputs, output };
-      const updater = () => {
-        InputSchema.forEach(([name]) => {
-          const from = OutputVectorContainer[inputNodes[name].nodeId];
-          const to = inputs[name];
-          to.set(from);
-        });
-        evaluator(io);
+const defineNode = <
+  I extends VectorSchemaMap,
+  O extends VectorSchemaMap,
+  E extends EventCreatorRecord,
+  GP extends object,
+  IP extends object
+>(
+  descriptor: VectorNodeDescriptor<I, O, E>,
+  logic: VectorComponentLogicCreator<I, O, E, GP, IP>,
+): VectorComponentFactory<I, O, E, GP, IP> => {
+  const characterize = (gProps: GP) => (iProps: IP) => {
+    const Component: VectorComponent<I, O, E> = <CU extends NodeConnectionBase<I>>(
+      connection: CU & NodeConnection<I, CU>,
+    ) => {
+      const node: VectorNode<I, O, E, NodeConnection<I, CU>> = {
+        id: nodeCount++,
+        type: Component,
+        connection,
+        addEventListener: (...args) => addVectorEventListener(node, ...args),
       };
-
-      return push({ nodeId, value: output, ...schema }, updater);
+      return node;
     };
 
-    return factory;
+    Component.events = descriptor.events;
+    Component.inputs = descriptor.inputs;
+    Component.outputs = descriptor.outputs;
+    ComponentToLogicMap.set(Component, (utility) => logic(utility, gProps, iProps));
+    return Component;
   };
 
-  return createNodeFactory;
-};
-
-const PSEUDO_INPUTS = Object.create(null);
-export const createInputNode = <O extends OneOfVectorType>(
-  output: O,
-): { node: VectorNode<{}, O>; vector: VectorMap[O] } => {
-  const nodeId = inputNodeCount--;
-  const vector = Vector(output);
-  OutputVectorContainer[nodeId] = vector;
-  const node = { nodeId, inputs: PSEUDO_INPUTS, output, value: vector };
-
-  return { node, vector };
+  return { ...descriptor, characterize };
 };
 
 export default defineNode;

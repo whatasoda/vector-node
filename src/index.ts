@@ -1,9 +1,8 @@
-import Scheduler from './scheduler';
 import defineNode from './node';
-import Vector from './vector';
+import createTree from './tree';
 
-const vn = { Scheduler, defineNode, Vector };
+const vn = { createTree, defineNode };
 
 export * from './decls';
-export { Scheduler, defineNode, Vector };
+export { defineNode, createTree };
 export default vn;
