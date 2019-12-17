@@ -1,7 +1,9 @@
 import ts from 'typescript';
 import path from 'path';
-import { ARRAY_TYPE_MAP, DIMENSIONS, VectorCreators, OneOfDimension, OneOfArrayType } from 'gen.vectorMap';
+import ArrayCreators, { DIMENSIONS, OneOfDimension, ARRAY_TYPE_MAP, OneOfArrayType } from '../../../src/typedArray';
+import { checkConnectabilityBySchema } from '../../../src/utils';
 
+const creatorList = Object.values(ArrayCreators);
 const baseFile = path.resolve(__dirname, '../../../src/gen/vectorMap.base.ts');
 
 const hydrateVectorCreatorMap = () => {
@@ -9,9 +11,13 @@ const hydrateVectorCreatorMap = () => {
   if (!baseText) throw new Error('no base file found');
 
   const file = ts.createSourceFile('vectorMap.base.ts', baseText, ts.ScriptTarget.Latest, false, ts.ScriptKind.TS);
-  const { members } = createVectorMapMembers();
 
-  let statements = overwriteInterfaceDeclaration([...file.statements], 'VectorMap', members);
+  let statements = overwriteInterfaceDeclaration([...file.statements], 'VectorMap', createVectorMapMembers());
+  statements = overwriteInterfaceDeclaration(
+    statements,
+    'AcceptableVectorTypeMap',
+    createAcceptableVectorTypeMapMembers(),
+  );
 
   return ts.updateSourceFileNode(
     file,
@@ -39,35 +45,32 @@ const createVectorMapMembers = () => {
     return acc;
   }, {} as any);
 
-  const members: ts.PropertySignature[] = [];
-  Object.values(VectorCreators).forEach(({ type, schema }) => {
+  return creatorList.map<ts.PropertySignature>(({ type, schema }) => {
     const { arrayType, dimension } = schema;
-    members.push(
-      ts.createPropertySignature(
-        [ts.createModifier(ts.SyntaxKind.ReadonlyKeyword)],
-        ts.createStringLiteral(type),
-        undefined,
-        tupleNodes[arrayType](dimension),
-        undefined,
-      ),
+    return ts.createPropertySignature(
+      [ts.createModifier(ts.SyntaxKind.ReadonlyKeyword)],
+      ts.createStringLiteral(type),
+      undefined,
+      tupleNodes[arrayType](dimension),
+      undefined,
     );
   });
-
-  return { members };
 };
 
-// const overwriteTypeAlias = (statements: ts.Statement[], name: string, type: ts.TypeNode) => {
-//   const index = statements.findIndex((statement) => {
-//     if (!ts.isTypeAliasDeclaration(statement)) return false;
-//     if (ts.idText(statement.name) !== name) return false;
-//     return true;
-//   });
-//   if (index === -1) return statements;
-
-//   const statement = ts.getMutableClone(statements[index] as ts.TypeAliasDeclaration);
-//   statement.type = type;
-//   return [...statements.slice(0, index), statement, ...statements.slice(index + 1)];
-// };
+const createAcceptableVectorTypeMapMembers = () => {
+  return creatorList.map<ts.PropertySignature>((to) => {
+    const list = creatorList
+      .filter((from) => checkConnectabilityBySchema(to.schema, from.schema))
+      .map(({ type }) => ts.createLiteralTypeNode(ts.createStringLiteral(type)));
+    return ts.createPropertySignature(
+      [ts.createModifier(ts.SyntaxKind.ReadonlyKeyword)],
+      ts.createStringLiteral(to.type),
+      undefined,
+      ts.createUnionTypeNode(list),
+      undefined,
+    );
+  });
+};
 
 const overwriteInterfaceDeclaration = (statements: ts.Statement[], name: string, members: ts.TypeElement[]) => {
   const index = statements.findIndex((statement) => {
