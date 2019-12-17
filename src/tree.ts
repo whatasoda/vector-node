@@ -10,6 +10,7 @@ import {
   VectorsOf,
   VectorComponent,
   VectorEvent,
+  AnyVectorNode,
 } from './decls';
 import { VectorMap } from './gen/vectorMap';
 import Vector from './vector';
@@ -37,7 +38,7 @@ interface VectorConnection {
 }
 
 interface NodeInstance {
-  nodeId: number;
+  node: GeneralVectorNode;
   Component: VectorComponent<VectorSchemaMap, VectorSchemaMap, EventCreatorRecord>;
   logic: (io: VectorNodeIO<VectorSchemaMap, VectorSchemaMap>) => void;
   io: VectorNodeIO<VectorSchemaMap, VectorSchemaMap>;
@@ -108,7 +109,8 @@ const createTree = <O extends VectorSchemaMap>(schema: O) => {
   })();
 
   const cleanupCallbacks: Record<number, () => void> = Object.create(null);
-  const createVectorInstance = ({ id: nodeId, type }: GeneralVectorNode): NodeInstance => {
+  const createVectorInstance = (node: GeneralVectorNode): NodeInstance => {
+    const { id: nodeId, type } = node;
     const { containers: inputs, vectors: i } = createVectors(nodeId, type.inputs);
     const { containers: outputs, vectors: o } = createVectors(nodeId, type.outputs);
     const io = { i, o };
@@ -120,7 +122,7 @@ const createTree = <O extends VectorSchemaMap>(schema: O) => {
       },
     })!;
 
-    return (nodeInstances[nodeId] = { nodeId, logic, inputs, outputs, io, Component: type });
+    return (nodeInstances[nodeId] = { node, logic, inputs, outputs, io, Component: type });
   };
 
   const eventQueue: [NodeInstance, VectorEvent<string, any>][] = [];
@@ -148,12 +150,12 @@ const createTree = <O extends VectorSchemaMap>(schema: O) => {
   };
 
   const dispatchAll = () => {
-    for (let i = 0; i < maxId; i++) {
+    for (let i = 0; i <= maxId; i++) {
       if (nodeInstances[i]) dispatchUpdate(nodeInstances[i]);
     }
     eventQueue.forEach(([target, event]) => {
-      const list = EventListenersMap[target.nodeId]?.[event.type];
-      list.forEach((handler) => handler(event, target));
+      const list = EventListenersMap[target.node.id]?.[event.type];
+      list.forEach((handler) => handler(event, target.node));
     });
     eventQueue.length = 0;
   };
@@ -162,14 +164,14 @@ const createTree = <O extends VectorSchemaMap>(schema: O) => {
     maxId = Math.max(...Object.keys(leaves).map(Number));
   };
 
-  const listen = (node: GeneralVectorNode) => {
+  const listen = (node: AnyVectorNode) => {
     if (node.id in leaves) return;
     leaves[node.id] = node;
     constructTree(node);
     updateMaxId();
   };
 
-  const unlisten = (node: GeneralVectorNode) => {
+  const unlisten = (node: AnyVectorNode) => {
     if (!(node.id in leaves)) return;
     delete leaves[node.id];
     unmount(node);
