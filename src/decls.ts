@@ -39,21 +39,29 @@ export interface VectorComponentFactory<
   I extends VectorSchemaMap,
   O extends VectorSchemaMap,
   E extends EventCreatorRecord,
-  GP extends object,
-  IP extends object
+  U extends object,
+  A extends object
 > extends VectorNodeDescriptor<I, O, E> {
-  characterize: (gProps: GP) => (iProps: IP) => VectorComponent<I, O, E>;
+  (uniforms: U): VectorComponent<I, O, E, U, A>;
 }
 
-export type AnyVectorComponent = VectorComponent<any, any, any>;
-export interface VectorComponent<I extends VectorSchemaMap, O extends VectorSchemaMap, E extends EventCreatorRecord>
-  extends VectorNodeDescriptor<I, O, E> {
-  <CU extends NodeConnectionBase<I>>(connection: CU & NodeConnection<I, CU>): VectorNode<
+export type AnyVectorComponent = VectorComponent<any, any, any, any, any>;
+export interface VectorComponent<
+  I extends VectorSchemaMap,
+  O extends VectorSchemaMap,
+  E extends EventCreatorRecord,
+  U extends object,
+  A extends object
+> extends VectorNodeDescriptor<I, O, E> {
+  <CB extends NodeConnectionBase<I>>(attributes: A, connections: CB & NodeConnection<I, CB>): VectorNode<
     I,
     O,
     E,
-    NodeConnection<I, CU>
+    U,
+    A,
+    NodeConnection<I, CB>
   >;
+  uniforms: Readonly<U>;
 }
 
 export type NodeConnectionBase<I extends VectorSchemaMap> = {
@@ -63,26 +71,24 @@ export type NodeConnection<I extends VectorSchemaMap, U extends NodeConnectionBa
   [K in keyof I]: [U[K][0], AcceptableKeysOf<U[K][0]['type']['outputs'], I[K]>];
 };
 
-export type NodeConnectionSchemaOf<I extends VectorSchemaMap, P extends VectorNodeMap> = {
-  [K in keyof I]: {
-    [L in keyof P]: [L, AcceptableKeysOf<P[L]['type']['outputs'], I[K]>];
-  }[keyof P];
-};
 export type AcceptableKeysOf<T extends VectorSchemaMap, U extends OneOfVectorType> = {
   [K in keyof T]: T[K] extends AcceptableVectorTypeMap[U] ? K : never;
 }[keyof T];
 
-export type AnyVectorNode = VectorNode<any, any, any, any>;
+export type AnyVectorNode = VectorNode<any, any, any, any, any, any>;
 export interface VectorNodeMap extends Record<string, AnyVectorNode> {}
 export interface VectorNode<
   I extends VectorSchemaMap,
   O extends VectorSchemaMap,
   E extends EventCreatorRecord,
+  U extends object,
+  A extends object,
   C extends NodeConnection<I, NodeConnectionBase<I>>
 > {
   readonly id: number;
-  readonly type: VectorComponent<I, O, E>;
-  readonly connection: C;
+  readonly type: VectorComponent<I, O, E, U, A>;
+  readonly attributes: Readonly<A>;
+  readonly connections: C;
   readonly addEventListener: <T extends Extract<keyof E, string>>(
     type: T,
     callback: (event: VectorEvent<T, ReturnType<E[T]>>, target: this) => void,
@@ -93,10 +99,10 @@ export interface VectorComponentLogicCreator<
   I extends VectorSchemaMap,
   O extends VectorSchemaMap,
   E extends EventCreatorRecord,
-  GP extends object,
-  IP extends object
+  U extends object,
+  A extends object
 > {
-  (utility: LogicUtility<E>, gProps: GP, iProps: IP): (io: VectorNodeIO<I, O>) => void;
+  (utility: LogicUtility<E>, uniforms: U, attributes: A): (io: VectorNodeIO<I, O>) => void;
 }
 
 export interface LogicUtility<E extends EventCreatorRecord> {

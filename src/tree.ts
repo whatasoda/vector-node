@@ -11,6 +11,7 @@ import {
   VectorComponent,
   VectorEvent,
   AnyVectorNode,
+  LogicUtility,
 } from './decls';
 import { VectorMap } from './gen/vectorMap';
 import Vector from './vector';
@@ -21,6 +22,8 @@ type GeneralVectorNode = VectorNode<
   VectorSchemaMap,
   VectorSchemaMap,
   EventCreatorRecord,
+  object,
+  object,
   NodeConnection<VectorSchemaMap, NodeConnectionBase<VectorSchemaMap>>
 >;
 
@@ -39,14 +42,15 @@ interface VectorConnection {
 
 interface NodeInstance {
   node: GeneralVectorNode;
-  Component: VectorComponent<VectorSchemaMap, VectorSchemaMap, EventCreatorRecord>;
+  Component: VectorComponent<VectorSchemaMap, VectorSchemaMap, EventCreatorRecord, object, object>;
   logic: (io: VectorNodeIO<VectorSchemaMap, VectorSchemaMap>) => void;
   io: VectorNodeIO<VectorSchemaMap, VectorSchemaMap>;
   inputs: Record<string, GeneralVectorInstance>;
   outputs: Record<string, GeneralVectorInstance>;
 }
 
-const CURRENT_NODE_INSTANCE = { current: null as null | NodeInstance };
+const CURRENT_UPDATE_NODE_INSTANCE = { current: null as null | NodeInstance };
+const CURRENT_INITIALIZE_NODE_INSTANCE = { current: null as null | GeneralVectorNode };
 
 const createTree = <O extends VectorSchemaMap>(schema: O) => {
   const leaves: Record<number, GeneralVectorNode> = Object.create(null);
@@ -57,23 +61,24 @@ const createTree = <O extends VectorSchemaMap>(schema: O) => {
 
   const constructTree = (() => {
     const queue: GeneralVectorNode[] = [];
-    const stage: GeneralVectorNode[] = [];
     return (node: GeneralVectorNode) => {
       if (node.id in nodeInstances) return;
 
-      queue.push(node);
-      for (let i = 0; i < queue.length; i++) {
-        Object.values(queue[i].connection).forEach(([n]) => {
+      const stage: Record<number, GeneralVectorNode> = Object.create(null);
+      stage[node.id] = node;
+      for (let i = node.id; i >= 0; i--) {
+        const curr = stage[i];
+        if (!curr) continue;
+        Object.values(curr.connections).forEach(([n]) => {
           if (n.id in nodeInstances) return;
-          stage.push(n);
+          stage[n.id] = n;
         });
-        queue.push(...stage.sort(({ id: a }, { id: b }) => (a < b ? 1 : a > b ? -1 : 0)));
-        stage.length = 0;
+        queue.push(curr);
       }
 
       queue.reverse().forEach((curr) => {
         const instance = createVectorInstance(curr);
-        Object.entries(curr.connection).forEach(([input, [sourceNode, output]]) => {
+        Object.entries(curr.connections).forEach(([input, [sourceNode, output]]) => {
           const { id: source } = nodeInstances[sourceNode.id].outputs[output];
           const connection =
             source in VectorConnections
@@ -110,36 +115,50 @@ const createTree = <O extends VectorSchemaMap>(schema: O) => {
 
   const cleanupCallbacks: Record<number, () => void> = Object.create(null);
   const createVectorInstance = (node: GeneralVectorNode): NodeInstance => {
-    const { id: nodeId, type } = node;
+    const { id: nodeId, type, attributes } = node;
     const { containers: inputs, vectors: i } = createVectors(nodeId, type.inputs);
     const { containers: outputs, vectors: o } = createVectors(nodeId, type.outputs);
     const io = { i, o };
 
-    const logic = ComponentToLogicMap.get(type)?.({
-      dispatch: dispatchEvent as any,
-      cleanup: (cb) => {
-        cleanupCallbacks[nodeId] = cb;
-      },
-    })!;
+    const initializer = ComponentToLogicMap.get(type);
+    if (!initializer) throw new Error('No logic initializer found');
+
+    const prev = CURRENT_INITIALIZE_NODE_INSTANCE.current;
+    CURRENT_INITIALIZE_NODE_INSTANCE.current = node;
+    const logic = initializer(utility, attributes);
+    CURRENT_INITIALIZE_NODE_INSTANCE.current = prev;
 
     return (nodeInstances[nodeId] = { node, logic, inputs, outputs, io, Component: type });
   };
 
   const eventQueue: [NodeInstance, VectorEvent<string, any>][] = [];
-  const dispatchEvent = (type: string, ...args: any[]) => {
-    const { current } = CURRENT_NODE_INSTANCE;
-    if (!current) throw new Error('eventDispatcher cannot be called outside of update logic');
+  const utility = ((): LogicUtility<Record<string, any>> => {
+    const dispatch = (type: string, ...args: any[]) => {
+      const { current } = CURRENT_UPDATE_NODE_INSTANCE;
+      if (!current) throw new Error('"LogicUtility.dispatch" cannot be called outside of updating part');
 
-    const value = current.Component.events[type](...args);
-    eventQueue.push([current, { type, value }]);
-  };
+      const value = current.Component.events[type](...args);
+      eventQueue.push([current, { type, value }]);
+    };
 
-  const dispatchUpdate = (instance: NodeInstance) => {
+    const cleanup = (callback: () => void) => {
+      const { current } = CURRENT_INITIALIZE_NODE_INSTANCE;
+      if (!current) throw new Error('"LogicUtility.cleanup" cannot be called outside of initializing part');
+
+      const nodeId = current.id;
+      if (cleanupCallbacks[nodeId]) throw new Error('"LogicUtility.cleanup" cannot be called multiple times');
+      cleanupCallbacks[nodeId] = callback;
+    };
+
+    return { dispatch, cleanup };
+  })();
+
+  const updateInstance = (instance: NodeInstance) => {
     const { outputs, io, logic } = instance;
-    const prev = CURRENT_NODE_INSTANCE.current;
-    CURRENT_NODE_INSTANCE.current = instance;
+    const prev = CURRENT_UPDATE_NODE_INSTANCE.current;
+    CURRENT_UPDATE_NODE_INSTANCE.current = instance;
     logic(io);
-    CURRENT_NODE_INSTANCE.current = prev;
+    CURRENT_UPDATE_NODE_INSTANCE.current = prev;
     Object.values(outputs).forEach(({ id, vector }) => {
       const connection = VectorConnections[id];
       if (!connection) return;
@@ -149,9 +168,9 @@ const createTree = <O extends VectorSchemaMap>(schema: O) => {
     });
   };
 
-  const dispatchAll = () => {
+  const updateAllInstances = () => {
     for (let i = 0; i <= maxId; i++) {
-      if (nodeInstances[i]) dispatchUpdate(nodeInstances[i]);
+      if (nodeInstances[i]) updateInstance(nodeInstances[i]);
     }
     eventQueue.forEach(([target, event]) => {
       const list = EventListenersMap[target.node.id]?.[event.type];
@@ -218,13 +237,13 @@ const createTree = <O extends VectorSchemaMap>(schema: O) => {
     };
   })();
 
-  const RootComponent = defineNode({ inputs: {}, events: {}, outputs: schema }, () => () => {}).characterize({})({});
-  const rootNode = RootComponent({});
+  const RootComponent = defineNode({ inputs: {}, events: {}, outputs: schema }, () => () => {})({});
+  const rootNode = RootComponent({}, {});
   const rootInstance = createVectorInstance(rootNode);
 
   const update = (callback: (o: Readonly<VectorsOf<O>>) => void) => {
     callback(rootInstance.io.o as Readonly<VectorsOf<O>>);
-    dispatchAll();
+    updateAllInstances();
   };
   return { rootNode, listen, update, unlisten };
 };

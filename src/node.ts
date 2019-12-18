@@ -4,7 +4,6 @@ import {
   VectorSchemaMap,
   EventCreatorRecord,
   VectorComponentFactory,
-  VectorComponent,
   NodeConnectionBase,
   NodeConnection,
   VectorComponentLogicCreator,
@@ -16,7 +15,7 @@ import { addVectorEventListener } from './event';
 
 export const ComponentToLogicMap = new Map<
   AnyVectorComponent,
-  (utils: LogicUtility<any>) => (io: VectorNodeIO<any, any>) => void
+  (utility: LogicUtility<any>, iProps: any) => (io: VectorNodeIO<any, any>) => void
 >();
 
 let nodeCount = 0;
@@ -25,33 +24,36 @@ const defineNode = <
   I extends VectorSchemaMap,
   O extends VectorSchemaMap,
   E extends EventCreatorRecord,
-  GP extends object,
-  IP extends object
+  U extends object,
+  A extends object
 >(
-  descriptor: VectorNodeDescriptor<I, O, E>,
-  logic: VectorComponentLogicCreator<I, O, E, GP, IP>,
-): VectorComponentFactory<I, O, E, GP, IP> => {
-  const characterize = (gProps: GP) => (iProps: IP) => {
-    const Component: VectorComponent<I, O, E> = <CU extends NodeConnectionBase<I>>(
-      connection: CU & NodeConnection<I, CU>,
-    ) => {
-      const node: VectorNode<I, O, E, NodeConnection<I, CU>> = {
+  { inputs, outputs, events }: VectorNodeDescriptor<I, O, E>,
+  logic: VectorComponentLogicCreator<I, O, E, U, A>,
+): VectorComponentFactory<I, O, E, U, A> => {
+  const characterize = (uniforms: U) => {
+    const Component = <CB extends NodeConnectionBase<I>>(attributes: A, connections: CB & NodeConnection<I, CB>) => {
+      const node: VectorNode<I, O, E, U, A, NodeConnection<I, CB>> = {
         id: nodeCount++,
         type: Component,
-        connection,
+        attributes,
+        connections,
         addEventListener: (...args) => addVectorEventListener(node, ...args),
       };
       return node;
     };
 
-    Component.events = descriptor.events;
-    Component.inputs = descriptor.inputs;
-    Component.outputs = descriptor.outputs;
-    ComponentToLogicMap.set(Component, (utility) => logic(utility, gProps, iProps));
+    Component.events = events;
+    Component.inputs = inputs;
+    Component.outputs = outputs;
+    Component.uniforms = uniforms;
+    ComponentToLogicMap.set(Component, (utility, attributes) => logic(utility, uniforms, attributes));
     return Component;
   };
+  characterize.events = events;
+  characterize.inputs = inputs;
+  characterize.outputs = outputs;
 
-  return { ...descriptor, characterize };
+  return characterize;
 };
 
 export default defineNode;
