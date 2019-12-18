@@ -65,10 +65,10 @@ export interface VectorComponent<
 }
 
 export type NodeConnectionBase<I extends VectorSchemaMap> = {
-  [K in keyof I]: [AnyVectorNode, any];
+  [K in keyof I]: readonly [AnyVectorNode, any];
 };
 export type NodeConnection<I extends VectorSchemaMap, U extends NodeConnectionBase<I>> = {
-  [K in keyof I]: [U[K][0], AcceptableKeysOf<U[K][0]['type']['outputs'], I[K]>];
+  [K in keyof I]: readonly [U[K][0], AcceptableKeysOf<U[K][0]['type']['outputs'], I[K]>];
 };
 
 export type AcceptableKeysOf<T extends VectorSchemaMap, U extends OneOfVectorType> = {
