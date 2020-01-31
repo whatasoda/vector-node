@@ -174,7 +174,7 @@ const createTree = <O extends VectorSchemaMap>(schema: O) => {
     }
     eventQueue.forEach(([target, event]) => {
       const list = EventListenersMap[target.node.id]?.[event.type];
-      list.forEach((handler) => handler(event, target.node));
+      list?.forEach((handler) => handler(event, target.node));
     });
     eventQueue.length = 0;
   };
