@@ -162,8 +162,10 @@ const createTree = <O extends VectorSchemaMap>(schema: O) => {
     Object.values(outputs).forEach(({ id, vector }) => {
       const connection = VectorConnections[id];
       if (!connection) return;
+      const { length } = vector;
       connection.targets.forEach((target) => {
-        vectorInstances[target].vector.set(vector);
+        const to = vectorInstances[target].vector;
+        to.set(to.length === length ? vector : vector.subarray(0, to.length));
       });
     });
   };
